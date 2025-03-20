@@ -222,7 +222,7 @@ def make_capabilities_JSON(all_FEAGI_inputs, all_FEAGI_outputs):
                     "custom_name": device.getName(),
                     "disabled": False,
                     "feagi_index": num,
-                    "max_power": 10,
+                    "max_power": 100,
                     "rolling_window_len": 2
                 }
 
@@ -246,20 +246,23 @@ def make_capabilities_JSON(all_FEAGI_inputs, all_FEAGI_outputs):
 
     print("New JSON Created")
 
+    for num, motor in enumerate(motors):
+        motor.setPosition(float('inf'))
+
 
 def generate_camera_data(cameras, default_capabilities, previous_frame_data, rgb, feagi_settings):
     while True:
         if cameras[0].getSamplingPeriod() > 0:
             image_data = get_sensor_data(cameras[0])
-            # Convert into ndarray based on the size it gets
-            new_rgb = retina.RGB_list_to_ndarray(image_data, [cameras[0].getWidth(), cameras[0].getHeight()])
-            # update astype to work well with retina and cv2
-            raw_frame = {'0': retina.update_astype(new_rgb)}
-            previous_frame_data, rgb, default_capabilities = retina.process_visual_stimuli(
-                raw_frame,
-                default_capabilities,
-                previous_frame_data,
-                rgb, capabilities)
+            # # Convert into ndarray based on the size it gets
+            # new_rgb = retina.RGB_list_to_ndarray(image_data, [cameras[0].getWidth(), cameras[0].getHeight()])
+            # # update astype to work well with retina and cv2
+            # raw_frame = {'0': retina.update_astype(new_rgb)}
+            # previous_frame_data, rgb, default_capabilities = retina.process_visual_stimuli(
+            #     raw_frame,
+            #     default_capabilities,
+            #     previous_frame_data,
+            #     rgb, capabilities)
         sleep(feagi_settings['feagi_burst_speed'])
 
 
@@ -492,14 +495,14 @@ if __name__ == "__main__":
     make_capabilities_JSON(all_FEAGI_inputs, all_FEAGI_outputs)
 
     cameras[0].enable(timestep) # test
-    print("enabled")
+    # print("enabled")
     robot.step(timestep)
 
     if cameras[0].getSamplingPeriod() > 0:
         image_data = get_sensor_data(cameras[0])
     else:
         print("Camera not enabled or not sampling")
-
+    #
     threading.Thread(target=generate_camera_data,
                      args=(cameras, default_capabilities, previous_frame_data, rgb,feagi_settings, ), daemon=True).start()
 
@@ -538,8 +541,8 @@ if __name__ == "__main__":
                                                          measure_enable=True)
 
 
-        if rgb:
-            message_to_feagi = pns.generate_feagi_data(rgb, message_to_feagi)
+        # if rgb:
+        #     message_to_feagi = pns.generate_feagi_data(rgb, message_to_feagi)
         # # Why is lidar inside the camera list?
         # for num, camera_data_raw in enumerate(cameras):
         #     data = get_sensor_data(camera_data_raw)
