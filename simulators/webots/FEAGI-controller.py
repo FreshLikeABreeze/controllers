@@ -76,6 +76,7 @@ def action(obtained_data):
             if outputType == motors:
                 for num, motor in enumerate(motors):
                     motor.setVelocity(recieve_motor_data[num])
+                    print("velocity: ", recieve_motor_data[num])
 
     if recieve_servo_data:
         for outputType in all_FEAGI_outputs:
@@ -219,7 +220,7 @@ def make_capabilities_JSON(all_FEAGI_inputs, all_FEAGI_outputs):
                     "custom_name": device.getName(),
                     "disabled": False,
                     "feagi_index": num,
-                    "max_power": 1,
+                    "max_power": 100,
                     "rolling_window_len": 2
                 }
 
