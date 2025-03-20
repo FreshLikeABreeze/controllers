@@ -502,6 +502,12 @@ if __name__ == "__main__":
         for num, distanceSensor in enumerate(distanceSensors):
             distanceSensor_data[str(num)] = get_sensor_data(distanceSensor)
 
+
+        # Why is lidar inside the camera list?
+        # print(cameras)
+        # for num, camera_data_raw in enumerate(cameras):
+        #     print(get_sensor_data(camera_data_raw))
+
         message_to_feagi = sensors.create_data_for_feagi('proximity', capabilities, message_to_feagi,
                                                          current_data=distanceSensor_data, symmetric=True,
                                                          measure_enable=True)
