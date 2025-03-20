@@ -602,48 +602,28 @@ if __name__ == "__main__":
             #print(obtained_signals)
             action(obtained_signals, capabilities) # THis is for actuator#
 
-
-
+        gyro_data={}
         # Send Gyro Sensor data to FEAGI
         for num, gyro in enumerate(gyros):
+            gyro_data[str(num)] = get_sensor_data(gyro)
+        message_to_feagi = sensors.create_data_for_feagi('gyro', capabilities, message_to_feagi, current_data=gyro_data, symmetric=True, measure_enable=True)
 
-            gyro_data = {str(num): get_sensor_data(gyro)}
-            print(gyro_data)
-
-            message_to_feagi = sensors.create_data_for_feagi('gyro', capabilities, message_to_feagi, current_data=gyro_data, symmetric=True, measure_enable=True)
-            
-            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
-            #message_to_feagi.clear()
-
-
-
+        positionSensor_data = {}
         # Send Motor Position Sensor data to FEAGI
         for num, positionSensor in enumerate(positionSensors):
+            positionSensor_data[str(num)] = get_sensor_data(positionSensor)
+        message_to_feagi = sensors.create_data_for_feagi('servo_position', capabilities, message_to_feagi, current_data=positionSensor_data, symmetric=True, measure_enable=True)
 
-            positionSensor_data = {str(num): get_sensor_data(positionSensor)}
-            #print(positionSensor_data)
-
-            message_to_feagi = sensors.create_data_for_feagi('servo_position', capabilities, message_to_feagi, current_data=positionSensor_data, symmetric=True, measure_enable=True)
-
-            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
-            #message_to_feagi.clear()
-
-
-
+        distanceSensor_data = {}
         # Send Proximity Sensor data to FEAGI
         for num, distanceSensor in enumerate(distanceSensors):
+            distanceSensor_data[str(num)] = get_sensor_data(distanceSensor)
 
-            distanceSensor_data = {str(num): get_sensor_data(distanceSensor)}
-            #print(distanceSensor_data)
+        message_to_feagi = sensors.create_data_for_feagi('proximity', capabilities, message_to_feagi, current_data=distanceSensor_data, symmetric=True, measure_enable=True)
 
-            message_to_feagi = sensors.create_data_for_feagi('proximity', capabilities, message_to_feagi, current_data=distanceSensor_data, symmetric=True, measure_enable=True)
-
-            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
-            #message_to_feagi.clear()
-
-        message_to_feagi.clear()
-
+        pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
 
         # cool down everytime
         sleep(feagi_settings['feagi_burst_speed'])
         robot.step(timestep)
+        message_to_feagi.clear()
