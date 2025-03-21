@@ -37,25 +37,28 @@ all_FEAGI_inputs = []
 # Get outputs that FEAGI can use in capabilities.json
 all_FEAGI_outputs = []
 
-
 # create the Robot instance.
 robot = Robot()
 
 # get the time step of the current world.
 timestep = int(robot.getBasicTimeStep())
 
-#all possible types of sensors           
-all_sensors = ["Accelerometer", "Camera", "Compass", "DistanceSensor", "GPS", "Gyro", 
-            "InertialUnit", "Lidar", "LightSensor", "PositionSensor", "Radar", "RangeFinder",
-            "Receiver", "TouchSensor"]
+# all possible types of sensors
+all_sensors = ["Accelerometer", "Camera", "Compass", "DistanceSensor", "GPS", "Gyro",
+               "InertialUnit", "Lidar", "LightSensor", "PositionSensor", "Radar", "RangeFinder",
+               "Receiver", "TouchSensor"]
 
-#arrays to store the robots sensors and actuators
+# arrays to store the robots sensors and actuators
 robot_sensors = []
 robot_actuators = []
 
+previous_frame_data = {}
+rgb = {'camera': {}}
+
 num_devices = robot.getNumberOfDevices()
 
-def action(obtained_data, capabilities):
+
+def action(obtained_data):
     """
     This is where you can make the robot do something based on FEAGI data. The variable
     obtained_data contains the data from FEAGI. The variable capabilities comes from
@@ -66,55 +69,27 @@ def action(obtained_data, capabilities):
     capabilities: dictionary.
     """
 
-    recieve_motor_data = None
-    recieve_servo_data = None
-    recieve_servo_position_data = None
 
-    try:
-        recieve_motor_data = actuators.get_motor_data(obtained_data)
-    except Exception as e:
-        #print("No Motor Data")
-        pass
+    recieve_motor_data = actuators.get_motor_data(obtained_data)
+    recieve_servo_data = actuators.get_servo_data(obtained_data)
+    recieve_servo_position_data = actuators.get_servo_position_data(obtained_data)
 
-
-    try:
-         recieve_servo_data = actuators.get_servo_data(obtained_data)
-    except Exception as e:
-        #print("No Servo Data")
-        pass
-
-
-    try:
-        recieve_servo_position_data = actuators.get_servo_position_data(obtained_data)
-    except Exception as e:
-        #print("No Servo Position Data")
-        pass
-
-
-    
     if recieve_motor_data:
-        print(recieve_motor_data)
-
         for outputType in all_FEAGI_outputs:
-            if outputType == 'motors':
-                for num, motor in enumerate(outputType):
-                    if num in recieve_motor_data:
-                        motor.setVelocity(recieve_motor_data[num])
+            if outputType == motors:
+                for num, motor in enumerate(motors):
+                    motor.setVelocity(recieve_motor_data[num])
 
     if recieve_servo_data:
-        print(recieve_servo_data)
-
         for outputType in all_FEAGI_outputs:
-            if outputType == 'motors':
-                for num, motor in enumerate(outputType):
-                    if num in recieve_motor_data:
-                        motor.setVelocity(recieve_motor_data[num])
+            if outputType == motors:
+                for num, motor in enumerate(motors):
+                    motor.setVelocity(recieve_motor_data[num])
 
     if recieve_servo_position_data:
-        print(recieve_servo_position_data)
         for outputType in all_FEAGI_outputs:
-            if outputType == 'motors':
-                for num,motor in enumerate(motors):
+            if outputType == motors:
+                for num, motor in enumerate(motors):
                     positionSensor = motor.getPositionSensor()
                     current_position = get_sensor_data(positionSensor)
                     motor.setPosition(float('inf'))
@@ -122,10 +97,7 @@ def action(obtained_data, capabilities):
                         motor.setVelocity(0.0)
 
 
-    pass # output like {0:0.50, 1:0.20, 2:0.30} # example but the data comes from your capabilities' servo range
-
-
-#returns the data of given sensor
+# returns the data of given sensor
 def get_sensor_data(sensor):
     if type(sensor).__name__ == "TouchSensor":
         if sensor.getType() in ("WB_TOUCH_SENSOR_BUMPER", "WB_TOUCH_SENSOR_FORCE"):
@@ -149,78 +121,6 @@ def get_sensor_data(sensor):
     elif type(sensor).__name__ == "Receiver":
         if sensor.getQueueLength() != 0:
             return sensor.getBytes()
-        
-
-
-
-#move the motors to make the robot spin
-def pioneer2_wheel_movements():
-    #gets the motors
-    left_wheel = robot.getDevice("left wheel motor")
-    right_wheel = robot.getDevice("right wheel motor")
-
-    print("Pre-move sensors")
-    print_all_ds()
-    print()
-            
-    #sets velocities opposite eachother, moves and then stops
-    left_wheel.setVelocity(-3)
-    right_wheel.setVelocity(3)
-    robot.step(10 * timestep)
-    left_wheel.setVelocity(0)
-    right_wheel.setVelocity(0)
-
-    print("Post-move sensors")
-    print_all_ds()
-    print("\n")
-    
-    #3 seconds
-    robot.step(3000)
-
-def pr2_move_arm(arm, positions):
-    """
-    Move the PR2 arm to a specified position.
-    :param arm: "left" or "right"
-    :param positions: Dict with joint angles {joint_name: angle}
-    """
-    """
-    Here is an example of how to call this function:
-    move_arm("right", {
-        "shoulder_pan": 0.0,
-        "shoulder_lift": 0.5,
-        "upper_arm_roll": 0.0,
-        "elbow_lift": -0.5,
-        "wrist_roll": 0.0
-    })
-    """
-    # Get PR2 motors for the right arm
-    right_arm_motors = {
-        "shoulder_pan": robot.getDevice("r_shoulder_pan_joint"),
-        "shoulder_lift": robot.getDevice("r_shoulder_lift_joint"),
-        "upper_arm_roll": robot.getDevice("r_upper_arm_roll_joint"),
-        "elbow_lift": robot.getDevice("r_elbow_flex_joint"),
-        "wrist_roll": robot.getDevice("r_wrist_roll_joint")
-    }
-    # Get PR2 motors for the left arm
-    left_arm_motors = {
-        "shoulder_pan": robot.getDevice("l_shoulder_pan_joint"),
-        "shoulder_lift": robot.getDevice("l_shoulder_lift_joint"),
-        "upper_arm_roll": robot.getDevice("l_upper_arm_roll_joint"),
-        "elbow_lift": robot.getDevice("l_elbow_flex_joint"),
-        "wrist_roll": robot.getDevice("l_wrist_roll_joint")
-    }
-    if arm == "right":
-        motors = right_arm_motors
-    elif arm == "left":
-        motors = left_arm_motors
-    else:
-        print("Invalid arm name. Use 'left' or 'right'.")
-        return
-    for joint, angle in positions.items():
-        if joint in motors:
-            motors[joint].setPosition(angle)
-        else:
-            print(f"Invalid joint name: {joint}")
 
 
 def make_capabilities_JSON(all_FEAGI_inputs, all_FEAGI_outputs):
@@ -231,9 +131,7 @@ def make_capabilities_JSON(all_FEAGI_inputs, all_FEAGI_outputs):
         }
     }
 
-
     for inputType in all_FEAGI_inputs:
-
 
         if inputType == cameras:
 
@@ -261,14 +159,12 @@ def make_capabilities_JSON(all_FEAGI_inputs, all_FEAGI_outputs):
                     "index": "00",
                     "mirror": False,
                     "modulation_control": {
-                        
+
                         "X offset percentage": 99,
                         "Y offset percentage": 99
                     },
                     "threshold_default": 50
                 }
-
-
 
     for inputType in all_FEAGI_inputs:
         if inputType == gyros:
@@ -285,7 +181,6 @@ def make_capabilities_JSON(all_FEAGI_inputs, all_FEAGI_outputs):
                     "min_value": [0, 0, 0]
                 }
 
-
     for inputType in all_FEAGI_inputs:
         if inputType == distanceSensors:
             type = "proximity"
@@ -300,7 +195,6 @@ def make_capabilities_JSON(all_FEAGI_inputs, all_FEAGI_outputs):
                     "max_value": 0,
                     "min_value": 0
                 }
-
 
     for inputType in all_FEAGI_inputs:
         if inputType == positionSensors:
@@ -317,7 +211,6 @@ def make_capabilities_JSON(all_FEAGI_inputs, all_FEAGI_outputs):
                     "min_value": 0
                 }
 
-
     for outputType in all_FEAGI_outputs:
         if outputType == motors:
             type = "motor"
@@ -329,8 +222,8 @@ def make_capabilities_JSON(all_FEAGI_inputs, all_FEAGI_outputs):
                     "custom_name": device.getName(),
                     "disabled": False,
                     "feagi_index": num,
-                    "max_power": 0,
-                    "rolling_window_len": 0
+                    "max_power": 100,
+                    "rolling_window_len": 2
                 }
 
     # for outputType in all_FEAGI_outputs:
@@ -348,15 +241,29 @@ def make_capabilities_JSON(all_FEAGI_inputs, all_FEAGI_outputs):
     #                 "rolling_window_len": 0
     #             }
 
-
     with open("capabilities.json", "w") as json_file:
         json.dump(data, json_file, indent=4)
 
     print("New JSON Created")
 
+    for num, motor in enumerate(motors):
+        motor.setPosition(float('inf'))
 
 
-
+def generate_camera_data(cameras, default_capabilities, previous_frame_data, rgb, feagi_settings):
+    while True:
+        if cameras[0].getSamplingPeriod() > 0:
+            image_data = get_sensor_data(cameras[0])
+            # # Convert into ndarray based on the size it gets
+            # new_rgb = retina.RGB_list_to_ndarray(image_data, [cameras[0].getWidth(), cameras[0].getHeight()])
+            # # update astype to work well with retina and cv2
+            # raw_frame = {'0': retina.update_astype(new_rgb)}
+            # previous_frame_data, rgb, default_capabilities = retina.process_visual_stimuli(
+            #     raw_frame,
+            #     default_capabilities,
+            #     previous_frame_data,
+            #     rgb, capabilities)
+        sleep(feagi_settings['feagi_burst_speed'])
 
 
 if __name__ == "__main__":
@@ -390,336 +297,260 @@ if __name__ == "__main__":
     # override all keys generated by this function, and store them into the same capabilities for
     # the rest of controller runtime.
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
-
-    
     threading.Thread(target=retina.vision_progress,
-                     args=(default_capabilities,feagi_settings, camera_data), daemon=True).start()
+                     args=(default_capabilities, feagi_settings, camera_data), daemon=True).start()
 
-
-    #put devices into correct arrays and enable sensors
+    # put devices into correct arrays and enable sensors
     for i in range(num_devices):
         device = robot.getDeviceByIndex(i)
         device_name = device.getName()
-                
-        #append to the correct list
+
+        # append to the correct list
         if type(device).__name__ in all_sensors:
             device.enable(timestep)
             robot_sensors.append(device)
         else:
             robot_actuators.append(device)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
-    #accelerometers
+    # accelerometers
     accelerometer = []
     for device in robot_sensors:
-            if "Accelerometer" == type(device).__name__:
-                accelerometer.append(device)
+        if "Accelerometer" == type(device).__name__:
+            accelerometer.append(device)
 
-    #Sort list by getName value
+    # Sort list by getName value
     accelerometer = sorted(accelerometer, key=lambda device: device.getName())
     all_FEAGI_inputs.append(accelerometer)
 
-
-
-    #Cameras
+    # Cameras
     cameras = []
     for device in robot_sensors:
-            if "Camera" == type(device).__name__:
-                cameras.append(device)
+        if "Camera" == type(device).__name__:
+            cameras.append(device)
 
-    #Sort list by getName value
+    # Sort list by getName value
     cameras = sorted(cameras, key=lambda device: device.getName())
     all_FEAGI_inputs.append(cameras)
 
-
-
-    #Gyros
+    # Gyros
     gyros = []
     for device in robot_sensors:
-            if "Gyro" == type(device).__name__:
-                gyros.append(device)
+        if "Gyro" == type(device).__name__:
+            gyros.append(device)
 
-    #Sort list by getName value
+    # Sort list by getName value
     gyros = sorted(gyros, key=lambda device: device.getName())
     all_FEAGI_inputs.append(gyros)
 
-
-
-    #Pressure Sensors
+    # Pressure Sensors
     pressureSensors = []
     for device in robot_sensors:
-            if "TouchSensor" == type(device).__name__:
-                pressureSensors.append(device)
+        if "TouchSensor" == type(device).__name__:
+            pressureSensors.append(device)
 
-    #Sort list by getName value
+    # Sort list by getName value
     pressureSensors = sorted(pressureSensors, key=lambda device: device.getName())
     all_FEAGI_inputs.append(pressureSensors)
 
-
-
-    #Distance Sensors
+    # Distance Sensors
     distanceSensors = []
     for device in robot_sensors:
-            if "DistanceSensor" == type(device).__name__:
-                distanceSensors.append(device)
+        if "DistanceSensor" == type(device).__name__:
+            distanceSensors.append(device)
 
-    #Sort list by getName value
+    # Sort list by getName value
     distanceSensors = sorted(distanceSensors, key=lambda device: device.getName())
     all_FEAGI_inputs.append(distanceSensors)
 
-
-
-    #Position Sensors
+    # Position Sensors
     positionSensors = []
     for device in robot_sensors:
-            if "PositionSensor" == type(device).__name__:
-                positionSensors.append(device)
+        if "PositionSensor" == type(device).__name__:
+            positionSensors.append(device)
 
-    #Sort list by getName value
+    # Sort list by getName value
     positionSensors = sorted(positionSensors, key=lambda device: device.getName())
     all_FEAGI_inputs.append(positionSensors)
 
-
-
-    #Lidars
+    # Lidars
     lidars = []
     for device in robot_sensors:
-            if "Lidar" == type(device).__name__:
-                lidars.append(device)
+        if "Lidar" == type(device).__name__:
+            lidars.append(device)
 
-    #Sort list by getName value
+    # Sort list by getName value
     lidars = sorted(lidars, key=lambda device: device.getName())
     all_FEAGI_inputs.append(lidars)
 
-
-    #Compass
+    # Compass
     Compasses = []
     for device in robot_sensors:
-            if "Compass" == type(device).__name__:
-                Compasses.append(device)
+        if "Compass" == type(device).__name__:
+            Compasses.append(device)
 
-    #Sort list by getName value
+    # Sort list by getName value
     Compasses = sorted(Compasses, key=lambda device: device.getName())
     all_FEAGI_inputs.append(Compasses)
 
-
-
-
-
-
-
-
-
-
-
-    #All types of motors now
+    # All types of motors now
     motors = []
     for device in robot_actuators:
-            if "Motor" == type(device).__name__:
-                motors.append(device)
+        if "Motor" == type(device).__name__:
+            motors.append(device)
 
-    #Sort list by getName value
+    # Sort list by getName value
     motors = sorted(motors, key=lambda device: device.getName())
     all_FEAGI_outputs.append(motors)
 
-
-
-    #All LEDS
+    # All LEDS
     leds = []
     for device in robot_actuators:
-            if "LED" == type(device).__name__:
-                leds.append(device)
+        if "LED" == type(device).__name__:
+            leds.append(device)
 
-    #Sort list by getName value
+    # Sort list by getName value
     leds = sorted(leds, key=lambda device: device.getName())
     all_FEAGI_outputs.append(leds)
 
-
-    #Brakes
+    # Brakes
     brakes = []
     for device in robot_actuators:
-            if "Brake" == type(device).__name__:
-                brakes.append(device)
+        if "Brake" == type(device).__name__:
+            brakes.append(device)
 
-    #Sort list by getName value
+    # Sort list by getName value
     brakes = sorted(brakes, key=lambda device: device.getName())
     all_FEAGI_outputs.append(brakes)
 
-
-
-    #Connectors
+    # Connectors
     connectors = []
     for device in robot_actuators:
-            if "Connector" == type(device).__name__:
-                connectors.append(device)
+        if "Connector" == type(device).__name__:
+            connectors.append(device)
 
-    #Sort list by getName value
+    # Sort list by getName value
     connectors = sorted(connectors, key=lambda device: device.getName())
     all_FEAGI_outputs.append(connectors)
 
-
-
-
-    #Displays
+    # Displays
     displays = []
     for device in robot_actuators:
-            if "Display" == type(device).__name__:
-                displays.append(device)
+        if "Display" == type(device).__name__:
+            displays.append(device)
 
-    #Sort list by getName value
+    # Sort list by getName value
     displays = sorted(displays, key=lambda device: device.getName())
     all_FEAGI_outputs.append(displays)
 
-
-
-
-    #Emitters
+    # Emitters
     emitters = []
     for device in robot_actuators:
-            if "Emitter" == type(device).__name__:
-                emitters.append(device)
+        if "Emitter" == type(device).__name__:
+            emitters.append(device)
 
-    #Sort list by getName value
+    # Sort list by getName value
     emitters = sorted(emitters, key=lambda device: device.getName())
     all_FEAGI_outputs.append(emitters)
 
-
-
-    #Pens
+    # Pens
     pens = []
     for device in robot_actuators:
-            if "Pen" == type(device).__name__:
-                pens.append(device)
+        if "Pen" == type(device).__name__:
+            pens.append(device)
 
-    #Sort list by getName value
+    # Sort list by getName value
     pens = sorted(pens, key=lambda device: device.getName())
     all_FEAGI_outputs.append(pens)
 
-
-
-    #Propeller
+    # Propeller
     propellers = []
     for device in robot_actuators:
-            if "Propeller" == type(device).__name__:
-                propellers.append(device)
+        if "Propeller" == type(device).__name__:
+            propellers.append(device)
 
-    #Sort list by getName value
+    # Sort list by getName value
     propellers = sorted(propellers, key=lambda device: device.getName())
     all_FEAGI_outputs.append(propellers)
 
-
-
-    #Speakers
+    # Speakers
     speakers = []
     for device in robot_actuators:
-            if "Speaker" == type(device).__name__:
-                speakers.append(device)
+        if "Speaker" == type(device).__name__:
+            speakers.append(device)
 
-    #Sort list by getName value
+    # Sort list by getName value
     speakers = sorted(speakers, key=lambda device: device.getName())
     all_FEAGI_outputs.append(speakers)
 
-
-
-    #Track
+    # Track
     tracks = []
     for device in robot_actuators:
-            if "Track" == type(device).__name__:
-                tracks.append(device)
+        if "Track" == type(device).__name__:
+            tracks.append(device)
 
-    #Sort list by getName value
+    # Sort list by getName value
     tracks = sorted(tracks, key=lambda device: device.getName())
     all_FEAGI_outputs.append(tracks)
 
-
-
-
     make_capabilities_JSON(all_FEAGI_inputs, all_FEAGI_outputs)
 
+    cameras[0].enable(timestep) # test
+    # print("enabled")
+    robot.step(timestep)
 
-
-
-
-
-
-
-
-
-
-
-
-
+    if cameras[0].getSamplingPeriod() > 0:
+        image_data = get_sensor_data(cameras[0])
+    else:
+        print("Camera not enabled or not sampling")
+    #
+    threading.Thread(target=generate_camera_data,
+                     args=(cameras, default_capabilities, previous_frame_data, rgb,feagi_settings, ), daemon=True).start()
 
 
     # Main Loop
     while True:
         # The controller will grab the data from FEAGI in real-time
         message_from_feagi = pns.message_from_feagi
-        if message_from_feagi: # Verify if the feagi data is not empty
+        if message_from_feagi:  # Verify if the feagi data is not empty
             # Translate from feagi data to human readable data
-            obtained_signals = pns.obtain_opu_data(message_from_feagi) # This is getting data from FEAGI
-            print("obtained_signals",obtained_signals)
-            action(obtained_signals, capabilities) # THis is for actuator#
+            obtained_signals = pns.obtain_opu_data(message_from_feagi)  # This is getting data from FEAGI
+            action(obtained_signals)  # THis is for actuator#
 
-
-
+        gyro_data = {}
         # Send Gyro Sensor data to FEAGI
         for num, gyro in enumerate(gyros):
+            gyro_data[str(num)] = get_sensor_data(gyro)
+        message_to_feagi = sensors.create_data_for_feagi('gyro', capabilities, message_to_feagi, current_data=gyro_data,
+                                                         symmetric=True, measure_enable=True)
 
-            gyro_data = {str(num): get_sensor_data(gyro)}
-            #print(gyro_data)
-
-            message_to_feagi = sensors.create_data_for_feagi('gyro', capabilities, message_to_feagi, current_data=gyro_data, symmetric=True, measure_enable=True)
-            
-            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
-            #message_to_feagi.clear()
-
-
-
+        positionSensor_data = {}
         # Send Motor Position Sensor data to FEAGI
         for num, positionSensor in enumerate(positionSensors):
+            positionSensor_data[str(num)] = get_sensor_data(positionSensor)
+        message_to_feagi = sensors.create_data_for_feagi('servo_position', capabilities, message_to_feagi,
+                                                         current_data=positionSensor_data, symmetric=True,
+                                                         measure_enable=True)
 
-            positionSensor_data = {str(num): get_sensor_data(positionSensor)}
-            #print(positionSensor_data)
-
-            message_to_feagi = sensors.create_data_for_feagi('servo_position', capabilities, message_to_feagi, current_data=positionSensor_data, symmetric=True, measure_enable=True)
-
-            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
-            #message_to_feagi.clear()
-
-
-
+        distanceSensor_data = {}
         # Send Proximity Sensor data to FEAGI
         for num, distanceSensor in enumerate(distanceSensors):
+            distanceSensor_data[str(num)] = get_sensor_data(distanceSensor)
 
-            distanceSensor_data = {str(num): get_sensor_data(distanceSensor)}
-            #print(distanceSensor_data)
+        message_to_feagi = sensors.create_data_for_feagi('proximity', capabilities, message_to_feagi,
+                                                         current_data=distanceSensor_data, symmetric=True,
+                                                         measure_enable=True)
 
-            message_to_feagi = sensors.create_data_for_feagi('proximity', capabilities, message_to_feagi, current_data=distanceSensor_data, symmetric=True, measure_enable=True)
 
-            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
-            #message_to_feagi.clear()
+        # if rgb:
+        #     message_to_feagi = pns.generate_feagi_data(rgb, message_to_feagi)
+        # # Why is lidar inside the camera list?
+        # for num, camera_data_raw in enumerate(cameras):
+        #     data = get_sensor_data(camera_data_raw)
+        #     print(len(data))
 
-        message_to_feagi.clear()
-
+        pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
 
         # cool down everytime
         sleep(feagi_settings['feagi_burst_speed'])
+        message_to_feagi.clear()
         robot.step(timestep)
