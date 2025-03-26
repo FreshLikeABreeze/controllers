@@ -64,7 +64,7 @@ def action(obtained_data):
     and calculate using the FEAGI data.
 
     obtained_data: dictionary.
-    capabilities: dictionary.
+    capabilities: dictionary..
     """
 
 
