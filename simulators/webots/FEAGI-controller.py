@@ -58,129 +58,22 @@ num_devices = robot.getNumberOfDevices()
 
 
 def action(obtained_data):
-    """
-    This is where you can make the robot do something based on FEAGI data. The variable
-    obtained_data contains the data from FEAGI. The variable capabilities comes from
-    the configuration.json file. It will need the capability to measure how much power it can control
-    and calculate using the FEAGI data.
+    recieve_motor_data = actuators.get_motor_data(obtained_data)
+    recieve_servo_data = actuators.get_servo_data(obtained_data)
+    recieve_servo_position_data = actuators.get_servo_position_data(obtained_data)
 
-    obtained_data: dictionary.
-    capabilities: dictionary.
-    """
+    if recieve_servo_position_data:
+        for real_id in recieve_servo_position_data:
+            robot_actuators["servo"][real_id].setPosition(recieve_servo_position_data[real_id])
 
+    if recieve_servo_data:
+        for real_id in recieve_servo_data:  # example output: {0: 100, 2: 100}
+            robot_actuators["servo"][real_id].setPosition(recieve_servo_data[real_id])
 
-    #print(f"robot_actuators - {robot_actuators}")
+    if recieve_motor_data:
+        for real_id in recieve_motor_data:
+            robot_actuators["motor"][real_id].setVelocity(recieve_motor_data[real_id])
 
-
-
-    for feagi_output_type, commands in obtained_data.items():
-
-        if feagi_output_type == "servo_position":
-            for feagi_motor_num, feagi_motor_data in commands.items():
-                #loop through robot motors to find the number motor commanded
-                for num, robot_motor in enumerate(robot_actuators["servo"]):
-                    if num is feagi_motor_num:
-                        
-                        ##### Temporary redundant capability check
-                        max_value = capabilities["output"]["servo"][str(num)]["max_value"]
-                        min_value = capabilities["output"]["servo"][str(num)]["min_value"]
-
-                        
-                        if feagi_motor_data < min_value:
-                            feagi_motor_data = min_value
-
-                        if feagi_motor_data > max_value:
-                            feagi_motor_data = max_value
-                        #####
-
-                        robot_motor.setPosition(feagi_motor_data)
-
-        if feagi_output_type == "servo":
-            for feagi_motor_num, feagi_motor_data in commands.items():
-                #loop through robot motors to find the number motor commanded
-                for num, robot_motor in enumerate(robot_actuators["servo"]):
-                    if num is feagi_motor_num:
-
-                        ##### Temporary redundant capability check
-                        max_power = capabilities["output"]["servo"][str(num)]["max_power"]
-
-                        if feagi_motor_data > max_power:
-                            feagi_motor_data = max_power
-                        #####
-                            
-                            robot_motor.setVelocity(feagi_motor_data)
-
-        if feagi_output_type == "motor":
-            for feagi_motor_num, feagi_motor_data in commands.items():
-                #loop through robot motors to find the number motor commanded
-                for num, robot_motor in enumerate(robot_actuators["motor"]):
-                    if num is feagi_motor_num:
-
-                        ##### Temporary redundant capability check
-                        max_power = capabilities["output"]["motor"][str(num)]["max_power"]
-
-                        if feagi_motor_data > max_power:
-                            feagi_motor_data = max_power
-                        #####
-
-                        
-                        robot_motor.setVelocity(feagi_motor_data)
-                        
-
-
-
-
-
-
-    # for feagi_output_type in obtained_data:
-    #     # MOTOR MOVEMENT
-    #     if feagi_output_type == "motor":
-    #         # print(f"feagi_motor_list: - {obtained_data["motor"]}")
-    #         # feagi_motor_list = {0: 1.0, 1: 0.85, 2: 1.0, 3: 1.0}
-    #         feagi_motor_list = obtained_data["motor"]
-
-    #         for motor_number in feagi_motor_list:
-    #             value = feagi_motor_list[motor_number]
-    #             for device in all_FEAGI_outputs:
-    #                 # print(f"device - {device}")
-    #                 # device = ('motors', [<controller.motor.Motor object at 0x0000021536F1B7A0>, <controller.motor.Motor object at 0x0000021535EF2EA0>])
-
-    #                 motor_list = device[1]
-    #                 # print(f"motor_list - {motor_list}")
-    #                 # motor_list = [<controller.motor.Motor object at 0x000002960AB10740>, <controller.motor.Motor object at 0x000002966B4A8050>]
-
-    #                 for num, webot_motor in enumerate(motor_list):
-
-    #                     if num == motor_number:
-    #                         # velocity control mode
-    #                         webot_motor.setPosition(float("inf"))
-    #                         webot_motor.setVelocity(value)
-
-    #     # SERVO Power
-    #     if feagi_output_type == "servo":
-    #         feagi_servo_list = obtained_data["servo"]
-
-    #         for servo_number in feagi_servo_list:
-    #             value = feagi_servo_list[servo_number]
-
-    #             for device in all_FEAGI_outputs:
-    #                 servo_list = device[1]
-    #                 for num, webot_servo in enumerate(servo_list):
-    #                     if num == servo_number:
-    #                         # velocity control mode
-    #                         webot_servo.setPosition(value)
-
-    #     # SERVO Position
-    #     if feagi_output_type == "servo_position":
-    #         feagi_servo_position_list = obtained_data["servo_position"]
-
-    #         for servo_position_number in feagi_servo_position_list:
-    #             value = feagi_servo_position_list[servo_position_number]
-    #             for device in all_FEAGI_outputs:
-    #                 servo_position_list = device[1]
-    #                 for num, webot_servo_position in enumerate(servo_position_list):
-    #                     if num == servo_position_number:
-    #                         webot_servo_position.setPosition(value)
 
 # returns the data of given sensor
 def get_sensor_data(sensor):
@@ -312,84 +205,11 @@ def sort_devices():
         device_list.sort(key=lambda device: device.getName())
 
 
-
-
-
-
-
-
-# move the motors to make the robot spin
-def pioneer2_wheel_movements():
-    # gets the motors
-    left_wheel = robot.getDevice("left wheel motor")
-    right_wheel = robot.getDevice("right wheel motor")
-
-    print("Pre-move sensors")
-    # print_all_ds()
-    print()
-
-    # sets velocities opposite eachother, moves and then stops
-    left_wheel.setVelocity(-3)
-    right_wheel.setVelocity(3)
-    robot.step(10 * timestep)
-    left_wheel.setVelocity(0)
-    right_wheel.setVelocity(0)
-
-    print("Post-move sensors")
-    # print_all_ds()
-    print("\n")
-
-    # 3 seconds
-    robot.step(3000)
-
-
-def pr2_move_arm(arm, positions):
-    """
-    Move the PR2 arm to a specified position.
-    :param arm: "left" or "right"
-    :param positions: Dict with joint angles {joint_name: angle}
-    """
-    """
-    Here is an example of how to call this function:
-    move_arm("right", {
-        "shoulder_pan": 0.0,
-        "shoulder_lift": 0.5,
-        "upper_arm_roll": 0.0,
-        "elbow_lift": -0.5,
-        "wrist_roll": 0.0
-    })
-    """
-    # Get PR2 motors for the right arm
-    right_arm_motors = {
-        "shoulder_pan": robot.getDevice("r_shoulder_pan_joint"),
-        "shoulder_lift": robot.getDevice("r_shoulder_lift_joint"),
-        "upper_arm_roll": robot.getDevice("r_upper_arm_roll_joint"),
-        "elbow_lift": robot.getDevice("r_elbow_flex_joint"),
-        "wrist_roll": robot.getDevice("r_wrist_roll_joint")
-    }
-    # Get PR2 motors for the left arm
-    left_arm_motors = {
-        "shoulder_pan": robot.getDevice("l_shoulder_pan_joint"),
-        "shoulder_lift": robot.getDevice("l_shoulder_lift_joint"),
-        "upper_arm_roll": robot.getDevice("l_upper_arm_roll_joint"),
-        "elbow_lift": robot.getDevice("l_elbow_flex_joint"),
-        "wrist_roll": robot.getDevice("l_wrist_roll_joint")
-    }
-    if arm == "right":
-        motors = right_arm_motors
-    elif arm == "left":
-        motors = left_arm_motors
-    else:
-        print("Invalid arm name. Use 'left' or 'right'.")
-        return
-    for joint, angle in positions.items():
-        if joint in motors:
-            motors[joint].setPosition(angle)
-        else:
-            print(f"Invalid joint name: {joint}")
-
-
 if __name__ == "__main__":
+    sort_devices()
+    robot.step(timestep)  # ensures that all sensors have had time to make a measurement, avoids null pointers
+    # make_capabilities(all_FEAGI_inputs, all_FEAGI_outputs)
+    make_capabilities(robot_sensors, robot_actuators)
 
     # Generate runtime dictionary
     runtime_data = {"vision": [], "stimulation_period": None, "feagi_state": None,
@@ -424,10 +244,6 @@ if __name__ == "__main__":
     threading.Thread(target=retina.vision_progress,
                      args=(default_capabilities, feagi_settings, camera_data), daemon=True).start()
 
-    sort_devices()
-    robot.step(timestep)  # ensures that all sensors have had time to make a measurement, avoids null pointers
-    # make_capabilities(all_FEAGI_inputs, all_FEAGI_outputs)
-    make_capabilities(robot_sensors, robot_actuators)
 
     # Main Loop
     while True:
@@ -448,15 +264,14 @@ if __name__ == "__main__":
                 for num, dev in enumerate(device_list):
                     data[device_type][str(num)] = get_sensor_data(dev)
 
-
         for sensor_name in data:
             message_to_feagi = sensors.create_data_for_feagi(
-                                    sensor_name,
-                                    capabilities,
-                                    message_to_feagi,
-                                    current_data=data[sensor_name], 
-                                    symmetric=True, 
-                                    measure_enable=True)
+                sensor_name,
+                capabilities,
+                message_to_feagi,
+                current_data=data[sensor_name],
+                symmetric=True,
+                measure_enable=True)
 
         pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
         message_to_feagi.clear()
