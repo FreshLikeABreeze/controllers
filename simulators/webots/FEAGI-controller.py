@@ -312,15 +312,7 @@ if __name__ == "__main__":
             # print("obtained_signals", obtained_signals)
             action(obtained_signals)  # THis is for actuator#
 
-        test_data = {}
-        for device_type, device_list in testing_sensors.items():
-            if testing_sensors[device_type]:
-                if device_type not in test_data:
-                    test_data[device_type] = {}
-                for num, dev in enumerate(device_list):
-                    test_data[device_type][str(num)] = get_sensor_data(dev)
-
-        # send sensor data to feagi
+        # Sending sensor data to feagi
         data = {}
         for device_type, device_list in robot_sensors.items():
             if robot_sensors[device_type]:
@@ -329,7 +321,7 @@ if __name__ == "__main__":
                 for num, dev in enumerate(device_list):
                     data[device_type][str(num)] = get_sensor_data(dev)
 
-        # raw_frame = {'vision': {}}
+        # Sending camera data to feagi
         if "camera" in data:
             camera_data['vision'] = copy.deepcopy(data['camera'])
             raw_frame = copy.deepcopy(camera_data['vision'])
@@ -341,7 +333,7 @@ if __name__ == "__main__":
             if rgb:
                 message_to_feagi = pns.generate_feagi_data(rgb, message_to_feagi)
 
-
+        # Sending lidar data to feagi
         for sensor_name in data:
             if sensor_name == "lidar":
                 for index in data[sensor_name]:
